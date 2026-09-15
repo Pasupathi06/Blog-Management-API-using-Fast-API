@@ -1,5 +1,8 @@
-﻿venv/
+venv/
 .env
 __pycache__/
 *.pyc
 blog.db
+blog_backup.db
+media/posts/*
+!media/posts/.gitkeep
