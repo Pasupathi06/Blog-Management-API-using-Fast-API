@@ -39,19 +39,43 @@ ALLOWED_IMAGE_TYPES = {
     "image/webp"
 }
 
+ALLOWED_IMAGE_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp"
+}
+
+MAX_IMAGE_SIZE = 5 * 1024 * 1024
+
 
 async def save_image(image: UploadFile | None):
     if image is None:
         return None
 
-    if image.content_type not in ALLOWED_IMAGE_TYPES:
+    # Get file extension
+    extension = os.path.splitext(
+        image.filename or ""
+    )[1].lower()
+
+    # Validate file extension
+    if extension not in ALLOWED_IMAGE_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPG, PNG and WEBP images are allowed"
+            detail="Only JPG, JPEG, PNG and WEBP images are allowed"
         )
 
-    extension = os.path.splitext(image.filename or "")[1].lower()
+    # Read image
+    contents = await image.read()
 
+    # Validate file size
+    if len(contents) > MAX_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Image size must be less than 5 MB"
+        )
+
+    # Generate unique filename
     filename = f"{uuid.uuid4().hex}{extension}"
 
     file_path = os.path.join(
@@ -59,8 +83,7 @@ async def save_image(image: UploadFile | None):
         filename
     )
 
-    contents = await image.read()
-
+    # Save image
     with open(file_path, "wb") as file:
         file.write(contents)
 
@@ -116,6 +139,7 @@ def get_posts(
 ):
     query = db.query(Post)
 
+    # Search by title or content
     if search:
         search_pattern = f"%{search}%"
 
@@ -124,10 +148,13 @@ def get_posts(
             (Post.content.ilike(search_pattern))
         )
 
+    # Total matching posts
     total = query.count()
 
+    # Total pages
     total_pages = math.ceil(total / limit) if total > 0 else 0
 
+    # Pagination
     posts = query.order_by(
         Post.created_at.desc()
     ).offset(
@@ -188,18 +215,22 @@ async def update_post(
             detail="Post not found"
         )
 
+    # Only post owner can update
     if post.author_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only update your own post"
         )
 
+    # Update title
     if title is not None:
         post.title = title
 
+    # Update content
     if content is not None:
         post.content = content
 
+    # Update image
     if image is not None:
         image_url = await save_image(image)
         post.image = image_url
@@ -229,6 +260,7 @@ def delete_post(
             detail="Post not found"
         )
 
+    # Only post owner can delete
     if post.author_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
