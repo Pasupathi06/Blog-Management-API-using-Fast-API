@@ -1,6 +1,7 @@
 import math
 import os
 import uuid
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
@@ -15,12 +16,16 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Post, User
+from app.models import Post, User, PostImage
 from app.schemas import (
     PostResponse,
     PaginatedPostResponse
 )
 from app.dependencies import get_current_user
+from app.subscription_service import (
+    check_post_limit,
+    check_image_limit
+)
 
 
 router = APIRouter(
@@ -49,33 +54,31 @@ ALLOWED_IMAGE_EXTENSIONS = {
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 
-async def save_image(image: UploadFile | None):
-    if image is None:
-        return None
-
-    # Get file extension
+async def save_image(image: UploadFile):
     extension = os.path.splitext(
         image.filename or ""
     )[1].lower()
 
-    # Validate file extension
     if extension not in ALLOWED_IMAGE_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only JPG, JPEG, PNG and WEBP images are allowed"
         )
 
-    # Read image
+    if image.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only JPG, JPEG, PNG and WEBP images are allowed"
+        )
+
     contents = await image.read()
 
-    # Validate file size
     if len(contents) > MAX_IMAGE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Image size must be less than 5 MB"
         )
 
-    # Generate unique filename
     filename = f"{uuid.uuid4().hex}{extension}"
 
     file_path = os.path.join(
@@ -83,12 +86,34 @@ async def save_image(image: UploadFile | None):
         filename
     )
 
-    # Save image
     with open(file_path, "wb") as file:
         file.write(contents)
 
     return f"/media/posts/{filename}"
 
+
+# =========================================================
+# POST RESPONSE HELPER
+# =========================================================
+
+def post_to_response(post: Post):
+    return {
+        "id": post.id,
+        "title": post.title,
+        "content": post.content,
+        "image": post.image,
+        "images": [
+            post_image.image
+            for post_image in post.images
+        ],
+        "author_id": post.author_id,
+        "created_at": post.created_at
+    }
+
+
+# =========================================================
+# CREATE POST
+# =========================================================
 
 @router.post(
     "/",
@@ -96,27 +121,74 @@ async def save_image(image: UploadFile | None):
     status_code=status.HTTP_201_CREATED
 )
 async def create_post(
-    title: str = Form(...),
-    content: str = Form(...),
-    image: UploadFile | None = File(default=None),
+    title: Annotated[str, Form(...)],
+    content: Annotated[str, Form(...)],
+
+    # Multiple image upload
+    images: Annotated[
+        list[UploadFile],
+        File()
+    ] = [],
+
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    image_url = await save_image(image)
+    # Check subscription post limit
+    check_post_limit(
+        current_user,
+        db
+    )
 
+    # Create post first
     new_post = Post(
         title=title,
         content=content,
-        image=image_url,
+        image=None,
         author_id=current_user.id
     )
 
     db.add(new_post)
+    db.flush()
+
+    uploaded_images = images or []
+
+    # Add images
+    for image in uploaded_images:
+
+        # Check subscription image limit
+        check_image_limit(
+            current_user,
+            db,
+            new_post
+        )
+
+        image_url = await save_image(image)
+
+        # Store first image in old Post.image field
+        if new_post.image is None:
+            new_post.image = image_url
+
+        # Store every image in post_images table
+        post_image = PostImage(
+            post_id=new_post.id,
+            image=image_url
+        )
+
+        db.add(post_image)
+
+        # Make newly added image visible
+        # to next limit check
+        db.flush()
+
     db.commit()
     db.refresh(new_post)
 
-    return new_post
+    return post_to_response(new_post)
 
+
+# =========================================================
+# GET ALL POSTS
+# =========================================================
 
 @router.get(
     "/",
@@ -139,7 +211,6 @@ def get_posts(
 ):
     query = db.query(Post)
 
-    # Search by title or content
     if search:
         search_pattern = f"%{search}%"
 
@@ -148,29 +219,37 @@ def get_posts(
             (Post.content.ilike(search_pattern))
         )
 
-    # Total matching posts
     total = query.count()
 
-    # Total pages
-    total_pages = math.ceil(total / limit) if total > 0 else 0
+    total_pages = (
+        math.ceil(total / limit)
+        if total > 0
+        else 0
+    )
 
-    # Pagination
-    posts = query.order_by(
-        Post.created_at.desc()
-    ).offset(
-        (page - 1) * limit
-    ).limit(
-        limit
-    ).all()
+    posts = (
+        query
+        .order_by(Post.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
 
     return {
-        "items": posts,
+        "items": [
+            post_to_response(post)
+            for post in posts
+        ],
         "total": total,
         "page": page,
         "limit": limit,
         "total_pages": total_pages
     }
 
+
+# =========================================================
+# GET SINGLE POST
+# =========================================================
 
 @router.get(
     "/{post_id}",
@@ -180,9 +259,11 @@ def get_post(
     post_id: int,
     db: Session = Depends(get_db)
 ):
-    post = db.query(Post).filter(
-        Post.id == post_id
-    ).first()
+    post = (
+        db.query(Post)
+        .filter(Post.id == post_id)
+        .first()
+    )
 
     if not post:
         raise HTTPException(
@@ -190,8 +271,12 @@ def get_post(
             detail="Post not found"
         )
 
-    return post
+    return post_to_response(post)
 
+
+# =========================================================
+# UPDATE POST
+# =========================================================
 
 @router.put(
     "/{post_id}",
@@ -199,15 +284,31 @@ def get_post(
 )
 async def update_post(
     post_id: int,
-    title: str | None = Form(default=None),
-    content: str | None = Form(default=None),
-    image: UploadFile | None = File(default=None),
+
+    title: Annotated[
+        str | None,
+        Form()
+    ] = None,
+
+    content: Annotated[
+        str | None,
+        Form()
+    ] = None,
+
+    # Multiple image upload
+    images: Annotated[
+        list[UploadFile],
+        File()
+    ] = [],
+
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    post = db.query(Post).filter(
-        Post.id == post_id
-    ).first()
+    post = (
+        db.query(Post)
+        .filter(Post.id == post_id)
+        .first()
+    )
 
     if not post:
         raise HTTPException(
@@ -215,31 +316,58 @@ async def update_post(
             detail="Post not found"
         )
 
-    # Only post owner can update
+    # Only owner can update
     if post.author_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only update your own post"
         )
 
-    # Update title
     if title is not None:
         post.title = title
 
-    # Update content
     if content is not None:
         post.content = content
 
-    # Update image
-    if image is not None:
+    uploaded_images = images or []
+
+    # Add new images
+    for image in uploaded_images:
+
+        # Check subscription image limit
+        check_image_limit(
+            current_user,
+            db,
+            post
+        )
+
         image_url = await save_image(image)
-        post.image = image_url
+
+        # Keep old image field updated
+        if post.image is None:
+            post.image = image_url
+
+        # Store image in post_images table
+        post_image = PostImage(
+            post_id=post.id,
+            image=image_url
+        )
+
+        db.add(post_image)
+
+        # Make newly added image visible
+        # to next limit check
+        db.flush()
 
     db.commit()
     db.refresh(post)
 
-    return post
+    return post_to_response(post)
 
+
+# =========================================================
+# DELETE POST
+# =========================================================
 
 @router.delete(
     "/{post_id}",
@@ -250,9 +378,11 @@ def delete_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    post = db.query(Post).filter(
-        Post.id == post_id
-    ).first()
+    post = (
+        db.query(Post)
+        .filter(Post.id == post_id)
+        .first()
+    )
 
     if not post:
         raise HTTPException(
@@ -260,7 +390,7 @@ def delete_post(
             detail="Post not found"
         )
 
-    # Only post owner can delete
+    # Only owner can delete
     if post.author_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

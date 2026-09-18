@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models import Like, Post, User
 from app.dependencies import get_current_user
 from app.email_service import send_email
+from app.subscription_service import check_like_limit
 
 
 router = APIRouter(
@@ -44,6 +45,9 @@ def like_post(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You already liked this post"
         )
+
+    # Check subscription like limit
+    check_like_limit(current_user, db)
 
     new_like = Like(
         post_id=post_id,

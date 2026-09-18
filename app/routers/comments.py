@@ -6,6 +6,7 @@ from app.models import Comment, Post, User
 from app.schemas import CommentCreate, CommentResponse
 from app.dependencies import get_current_user
 from app.email_service import send_email
+from app.subscription_service import check_comment_limit
 
 
 router = APIRouter(
@@ -38,6 +39,9 @@ def create_comment(
             detail="Post not found"
         )
 
+    # Check subscription comment limit
+    check_comment_limit(current_user, db)
+
     new_comment = Comment(
         post_id=post_id,
         user_id=current_user.id,
@@ -49,17 +53,16 @@ def create_comment(
     db.refresh(new_comment)
 
     send_email(
-    recipient=post.author.email,
-    subject="New Comment on Your Blog Post",
-    body=(
-        f"Hello {post.author.username},\n\n"
-        f"Someone commented on your post: '{post.title}'\n\n"
-        f"Comment: {comment_data.text}\n\n"
-        "Regards,\n"
-        "Blog Management API"
+        recipient=post.author.email,
+        subject="New Comment on Your Blog Post",
+        body=(
+            f"Hello {post.author.username},\n\n"
+            f"Someone commented on your post: '{post.title}'\n\n"
+            f"Comment: {comment_data.text}\n\n"
+            "Regards,\n"
+            "Blog Management API"
+        )
     )
-)
-
 
     return new_comment
 

@@ -57,7 +57,13 @@ class PostResponse(BaseModel):
     id: int
     title: str
     content: str
+
+    # Existing single image field
     image: str | None = None
+
+    # New multiple images field
+    images: list[str] = []
+
     author_id: int
     created_at: datetime
 
@@ -73,7 +79,7 @@ class PaginatedPostResponse(BaseModel):
     total_pages: int
 
 
-    # ---------- Comment Schemas ----------
+# ---------- Comment Schemas ----------
 
 class CommentCreate(BaseModel):
     text: str = Field(..., min_length=1, max_length=1000)
