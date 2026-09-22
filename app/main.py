@@ -10,6 +10,7 @@ from app.routers.posts import router as posts_router
 from app.routers.comments import router as comments_router
 from app.routers.likes import router as likes_router
 from app.routers.subscriptions import router as subscriptions_router
+from app.routers.dashboard import router as dashboard_router
 
 
 # =========================================================
@@ -42,6 +43,17 @@ app.mount(
 
 
 # =========================================================
+# SERVE DASHBOARD STATIC FILES
+# =========================================================
+
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)
+
+
+# =========================================================
 # INCLUDE ROUTERS
 # =========================================================
 
@@ -59,6 +71,9 @@ app.include_router(likes_router)
 
 # Subscriptions
 app.include_router(subscriptions_router)
+
+# User Dashboard
+app.include_router(dashboard_router)
 
 
 # =========================================================
