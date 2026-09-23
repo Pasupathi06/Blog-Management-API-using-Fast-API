@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, SubscriptionPlan, BillingHistory
+from app.models import (
+    User,
+    SubscriptionPlan,
+    BillingHistory,
+    Notification
+)
 from app.dependencies import get_current_user
 from app.invoice_service import generate_invoice
 
@@ -146,6 +151,20 @@ def subscribe_to_plan(
     db.add(billing)
     db.commit()
     db.refresh(billing)
+
+    # Create in-app notification for subscription activation
+    notification = Notification(
+        user_id=current_user.id,
+        message=(
+            f"Your {plan.name} subscription has been "
+            f"activated successfully."
+        ),
+        notification_type="subscription",
+        is_read=False
+    )
+
+    db.add(notification)
+    db.commit()
 
     return {
         "message": "Subscription activated successfully.",

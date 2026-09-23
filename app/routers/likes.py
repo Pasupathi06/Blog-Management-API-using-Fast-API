@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -8,7 +10,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Like, Post, User
+from app.models import Like, Post, User, Notification
 from app.dependencies import get_current_user
 from app.subscription_service import check_like_limit
 from app.services.notification_service import send_like_notification
@@ -65,13 +67,27 @@ def like_post(
     db.commit()
     db.refresh(new_like)
 
+    # Create in-app notification for post owner
+    notification = Notification(
+        user_id=post.author_id,
+        message=(
+            f"{current_user.username} liked your post "
+            f'"{post.title}"'
+        ),
+        notification_type="like",
+        is_read=False
+    )
+
+    db.add(notification)
+    db.commit()
+
     # Send notification email in the background
     background_tasks.add_task(
         send_like_notification,
         post.author.email,
         post.title,
         current_user.username,
-        new_like.created_at,
+        datetime.utcnow(),
     )
 
     return {

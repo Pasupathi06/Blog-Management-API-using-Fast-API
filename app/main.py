@@ -11,6 +11,7 @@ from app.routers.comments import router as comments_router
 from app.routers.likes import router as likes_router
 from app.routers.subscriptions import router as subscriptions_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers.notifications import router as notifications_router
 
 
 # =========================================================
@@ -74,6 +75,9 @@ app.include_router(subscriptions_router)
 
 # User Dashboard
 app.include_router(dashboard_router)
+
+# Notifications
+app.include_router(notifications_router)
 
 
 # =========================================================

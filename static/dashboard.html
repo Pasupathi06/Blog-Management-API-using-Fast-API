@@ -45,6 +45,7 @@
             border-radius: 12px;
             margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            position: relative;
         }
 
         .header h1 {
@@ -54,6 +55,149 @@
         .header p {
             color: #666;
         }
+
+        /* =====================================================
+           NOTIFICATION CENTER
+           ===================================================== */
+
+        .notification-wrapper {
+            position: absolute;
+            top: 22px;
+            right: 25px;
+        }
+
+        .notification-bell {
+            position: relative;
+            width: 46px;
+            height: 46px;
+            border: none;
+            border-radius: 50%;
+            background: #f1f5f9;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-bell:hover {
+            background: #e2e8f0;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 5px;
+            border-radius: 10px;
+            background: #dc2626;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 55px;
+            right: 0;
+            width: 380px;
+            max-width: calc(100vw - 30px);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        .notification-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-header h3 {
+            font-size: 17px;
+        }
+
+        .mark-all-button {
+            border: none;
+            background: transparent;
+            color: #2563eb;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .mark-all-button:hover {
+            text-decoration: underline;
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 14px 15px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .notification-item.unread {
+            background: #eff6ff;
+            font-weight: bold;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 7px;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 9px;
+        }
+
+        .notification-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: #e5e7eb;
+            font-size: 11px;
+            margin-right: 8px;
+            text-transform: capitalize;
+        }
+
+        .notification-action {
+            border: none;
+            background: transparent;
+            color: #2563eb;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .notification-action:hover {
+            text-decoration: underline;
+        }
+
+        .no-notifications {
+            padding: 30px 15px;
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+        }
+
+        /* =====================================================
+           AUTHENTICATION
+           ===================================================== */
 
         .auth-box {
             background: white;
@@ -214,6 +358,18 @@
             .chart-container {
                 height: 350px;
             }
+
+            .notification-wrapper {
+                top: 18px;
+                right: 18px;
+            }
+
+            .notification-dropdown {
+                position: fixed;
+                top: 80px;
+                right: 15px;
+                width: calc(100vw - 30px);
+            }
         }
 
     </style>
@@ -236,6 +392,70 @@
         <p>
             Blog Management API - Personal Activity & Analytics
         </p>
+
+
+        <!-- =================================================
+             NOTIFICATION CENTER
+             ================================================= -->
+
+        <div
+            id="notificationWrapper"
+            class="notification-wrapper hidden"
+        >
+
+            <button
+                id="notificationBell"
+                class="notification-bell"
+                onclick="toggleNotifications()"
+                title="Notifications"
+            >
+                🔔
+
+                <span
+                    id="notificationBadge"
+                    class="notification-badge hidden"
+                >
+                    0
+                </span>
+
+            </button>
+
+
+            <!-- Notification Dropdown -->
+
+            <div
+                id="notificationDropdown"
+                class="notification-dropdown hidden"
+            >
+
+                <div class="notification-header">
+
+                    <h3>Notifications</h3>
+
+                    <button
+                        class="mark-all-button"
+                        onclick="markAllNotificationsAsRead()"
+                    >
+                        Mark all as read
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="notificationList"
+                    class="notification-list"
+                >
+
+                    <div class="no-notifications">
+                        No notifications
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
 
     </div>
 
@@ -395,7 +615,7 @@
 
         <div class="table-card">
 
-            <h2>📝 Your Posts Analytics</h2>
+            <h2>📋 Post Analytics</h2>
 
             <table>
 
@@ -435,10 +655,12 @@
 <script>
 
     // =====================================================
-    // GLOBAL CHART VARIABLE
+    // GLOBAL VARIABLES
     // =====================================================
 
     let activityChart = null;
+
+    let notificationRefreshInterval = null;
 
 
     // =====================================================
@@ -455,7 +677,6 @@
 
         const dashboardContent =
             document.getElementById("dashboardContent");
-
 
         // -------------------------------------------------
         // Validate token
@@ -559,6 +780,15 @@
 
 
             // =================================================
+            // SHOW NOTIFICATION CENTER
+            // =================================================
+
+            document
+                .getElementById("notificationWrapper")
+                .classList.remove("hidden");
+
+
+            // =================================================
             // USER INFORMATION
             // =================================================
 
@@ -599,6 +829,30 @@
 
             createPostsTable(data.posts);
 
+
+            // =================================================
+            // LOAD NOTIFICATIONS
+            // =================================================
+
+            loadNotifications();
+
+
+            // =================================================
+            // REAL-TIME NOTIFICATION REFRESH
+            // =================================================
+
+            if (notificationRefreshInterval) {
+
+                clearInterval(notificationRefreshInterval);
+
+            }
+
+            notificationRefreshInterval =
+                setInterval(
+                    loadNotifications,
+                    10000
+                );
+
         }
 
 
@@ -606,11 +860,381 @@
 
             dashboardContent.classList.add("hidden");
 
+            document
+                .getElementById("notificationWrapper")
+                .classList.add("hidden");
+
             message.textContent =
                 error.message;
 
             message.className =
                 "message error";
+
+        }
+
+    }
+
+
+    // =====================================================
+    // NOTIFICATION CENTER
+    // =====================================================
+
+    function toggleNotifications() {
+
+        const dropdown =
+            document.getElementById(
+                "notificationDropdown"
+            );
+
+        dropdown.classList.toggle("hidden");
+
+        if (!dropdown.classList.contains("hidden")) {
+
+            loadNotifications();
+
+        }
+
+    }
+
+
+    // =====================================================
+    // LOAD NOTIFICATIONS
+    // =====================================================
+
+    async function loadNotifications() {
+
+        const token =
+            document.getElementById("tokenInput").value.trim();
+
+        if (!token) {
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                "/notifications/",
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            if (!response.ok) {
+
+                return;
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            updateNotificationBadge(
+                data.unread_count
+            );
+
+            renderNotifications(
+                data.notifications
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Notification loading failed:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // UPDATE UNREAD BADGE
+    // =====================================================
+
+    function updateNotificationBadge(unreadCount) {
+
+        const badge =
+            document.getElementById(
+                "notificationBadge"
+            );
+
+
+        if (unreadCount > 0) {
+
+            badge.textContent =
+                unreadCount > 99
+                    ? "99+"
+                    : unreadCount;
+
+            badge.classList.remove(
+                "hidden"
+            );
+
+        } else {
+
+            badge.classList.add(
+                "hidden"
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // RENDER NOTIFICATIONS
+    // =====================================================
+
+    function renderNotifications(notifications) {
+
+        const list =
+            document.getElementById(
+                "notificationList"
+            );
+
+
+        list.innerHTML = "";
+
+
+        if (!notifications || notifications.length === 0) {
+
+            list.innerHTML = `
+                <div class="no-notifications">
+                    No notifications
+                </div>
+            `;
+
+            return;
+
+        }
+
+
+        notifications.forEach(notification => {
+
+            const item =
+                document.createElement("div");
+
+
+            item.className =
+                "notification-item";
+
+
+            if (!notification.is_read) {
+
+                item.classList.add(
+                    "unread"
+                );
+
+            }
+
+
+            const createdAt =
+                new Date(
+                    notification.created_at
+                ).toLocaleString();
+
+
+            const actionText =
+                notification.is_read
+                    ? "Mark as unread"
+                    : "Mark as read";
+
+
+            const actionFunction =
+                notification.is_read
+                    ? `markNotificationAsUnread(${notification.id})`
+                    : `markNotificationAsRead(${notification.id})`;
+
+
+            item.innerHTML = `
+
+                <div class="notification-message">
+                    ${escapeHtml(notification.message)}
+                </div>
+
+                <div class="notification-time">
+                    <span class="notification-type">
+                        ${escapeHtml(notification.notification_type)}
+                    </span>
+
+                    ${escapeHtml(createdAt)}
+                </div>
+
+                <button
+                    class="notification-action"
+                    onclick="${actionFunction}"
+                >
+                    ${actionText}
+                </button>
+
+            `;
+
+
+            list.appendChild(item);
+
+        });
+
+    }
+
+
+    // =====================================================
+    // MARK SINGLE NOTIFICATION AS READ
+    // =====================================================
+
+    async function markNotificationAsRead(
+        notificationId
+    ) {
+
+        const token =
+            document.getElementById(
+                "tokenInput"
+            ).value.trim();
+
+
+        if (!token) {
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                `/notifications/${notificationId}/read`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            if (response.ok) {
+
+                await loadNotifications();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Failed to mark notification as read:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // MARK SINGLE NOTIFICATION AS UNREAD
+    // =====================================================
+
+    async function markNotificationAsUnread(
+        notificationId
+    ) {
+
+        const token =
+            document.getElementById(
+                "tokenInput"
+            ).value.trim();
+
+
+        if (!token) {
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                `/notifications/${notificationId}/unread`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            if (response.ok) {
+
+                await loadNotifications();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Failed to mark notification as unread:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // MARK ALL NOTIFICATIONS AS READ
+    // =====================================================
+
+    async function markAllNotificationsAsRead() {
+
+        const token =
+            document.getElementById(
+                "tokenInput"
+            ).value.trim();
+
+
+        if (!token) {
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                "/notifications/read-all",
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            if (response.ok) {
+
+                await loadNotifications();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Failed to mark all notifications as read:",
+                error
+            );
 
         }
 
@@ -748,7 +1372,9 @@
     function createPostsTable(posts) {
 
         const tableBody =
-            document.getElementById("postsTableBody");
+            document.getElementById(
+                "postsTableBody"
+            );
 
 
         tableBody.innerHTML = "";
@@ -806,6 +1432,42 @@
             .replace(/'/g, "&#039;");
 
     }
+
+
+    // =====================================================
+    // CLOSE NOTIFICATION DROPDOWN
+    // WHEN CLICKING OUTSIDE
+    // =====================================================
+
+    document.addEventListener(
+        "click",
+        function(event) {
+
+            const wrapper =
+                document.getElementById(
+                    "notificationWrapper"
+                );
+
+            const dropdown =
+                document.getElementById(
+                    "notificationDropdown"
+                );
+
+
+            if (
+                !wrapper.contains(event.target)
+                &&
+                !dropdown.classList.contains("hidden")
+            ) {
+
+                dropdown.classList.add(
+                    "hidden"
+                );
+
+            }
+
+        }
+    );
 
 </script>
 

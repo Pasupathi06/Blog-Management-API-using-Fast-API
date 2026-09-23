@@ -8,7 +8,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Comment, Post, User
+from app.models import Comment, Post, User, Notification
 from app.schemas import CommentCreate, CommentResponse
 from app.dependencies import get_current_user
 from app.subscription_service import check_comment_limit
@@ -58,6 +58,20 @@ def create_comment(
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
+
+    # Create in-app notification for post owner
+    notification = Notification(
+        user_id=post.author_id,
+        message=(
+            f"{current_user.username} commented on your post "
+            f'"{post.title}"'
+        ),
+        notification_type="comment",
+        is_read=False
+    )
+
+    db.add(notification)
+    db.commit()
 
     # Send notification email in the background
     background_tasks.add_task(
