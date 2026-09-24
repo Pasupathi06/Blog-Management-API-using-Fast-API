@@ -12,6 +12,7 @@ from app.routers.likes import router as likes_router
 from app.routers.subscriptions import router as subscriptions_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.notifications import router as notifications_router
+from app.routers.ai_support import router as ai_support_router
 
 
 # =========================================================
@@ -78,6 +79,9 @@ app.include_router(dashboard_router)
 
 # Notifications
 app.include_router(notifications_router)
+
+# AI Support
+app.include_router(ai_support_router)
 
 
 # =========================================================
