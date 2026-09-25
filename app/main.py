@@ -1,6 +1,9 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
+
+import os
 
 from app.database import Base, engine
 from app import models
@@ -13,6 +16,7 @@ from app.routers.subscriptions import router as subscriptions_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.notifications import router as notifications_router
 from app.routers.ai_support import router as ai_support_router
+from app.routers.auth0 import router as auth0_router
 
 
 # =========================================================
@@ -30,6 +34,24 @@ app = FastAPI(
     title="Blog Management API",
     description="A mini blogging system built with FastAPI",
     version="1.0.0"
+)
+
+
+# =========================================================
+# SESSION MIDDLEWARE
+# Required for Auth0 OAuth login
+# =========================================================
+
+SESSION_SECRET_KEY = os.getenv(
+    "SESSION_SECRET_KEY",
+    "blog-management-local-session-secret-2026"
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET_KEY,
+    same_site="lax",
+    https_only=False
 )
 
 
@@ -83,6 +105,9 @@ app.include_router(notifications_router)
 # AI Support
 app.include_router(ai_support_router)
 
+# Auth0 Google / Facebook
+app.include_router(auth0_router)
+
 
 # =========================================================
 # ROOT ENDPOINT
@@ -108,12 +133,6 @@ def health_check():
 
 # =========================================================
 # CUSTOM OPENAPI SCHEMA
-# =========================================================
-#
-# This makes Swagger UI understand the images field
-# as a binary file upload instead of a normal string.
-#
-# Actual backend UploadFile logic remains unchanged.
 # =========================================================
 
 def custom_openapi():
@@ -197,5 +216,8 @@ def custom_openapi():
     return app.openapi_schema
 
 
-# Tell FastAPI to use our custom OpenAPI schema
+# =========================================================
+# USE CUSTOM OPENAPI SCHEMA
+# =========================================================
+
 app.openapi = custom_openapi

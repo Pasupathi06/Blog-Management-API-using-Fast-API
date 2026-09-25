@@ -1,0 +1,1952 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>User Dashboard - Blog Management API</title>
+
+    <!-- =====================================================
+         CHART.JS
+         ===================================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <!-- =====================================================
+         STYLES
+         ===================================================== -->
+    <style>
+      
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #222;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .header h1 {
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        /* =====================================================
+           NOTIFICATION CENTER
+           ===================================================== */
+
+        .notification-wrapper {
+            position: absolute;
+            top: 22px;
+            right: 25px;
+        }
+
+        .notification-bell {
+            position: relative;
+            width: 46px;
+            height: 46px;
+            border: none;
+            border-radius: 50%;
+            background: #f1f5f9;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-bell:hover {
+            background: #e2e8f0;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 5px;
+            border-radius: 10px;
+            background: #dc2626;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 55px;
+            right: 0;
+            width: 380px;
+            max-width: calc(100vw - 30px);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        .notification-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-header h3 {
+            font-size: 17px;
+        }
+
+        .mark-all-button {
+            border: none;
+            background: transparent;
+            color: #2563eb;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .mark-all-button:hover {
+            text-decoration: underline;
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 14px 15px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .notification-item.unread {
+            background: #eff6ff;
+            font-weight: bold;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 7px;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 9px;
+        }
+
+        .notification-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: #e5e7eb;
+            font-size: 11px;
+            margin-right: 8px;
+            text-transform: capitalize;
+        }
+
+        .notification-action {
+            border: none;
+            background: transparent;
+            color: #2563eb;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .notification-action:hover {
+            text-decoration: underline;
+        }
+
+        .no-notifications {
+            padding: 30px 15px;
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+        }
+
+        /* =====================================================
+           AUTHENTICATION
+           ===================================================== */
+
+        .auth-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .auth-box h2 {
+            margin-bottom: 12px;
+        }
+
+        .token-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .button {
+            padding: 11px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            background: #2563eb;
+            color: white;
+        }
+
+        .button:hover {
+            opacity: 0.9;
+        }
+
+        .message {
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #dc2626;
+        }
+
+        .success {
+            color: #16a34a;
+        }
+
+        /* =====================================================
+           SUMMARY CARDS
+           ===================================================== */
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h3 {
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 10px;
+        }
+
+        .card .value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        /* =====================================================
+           CHART
+           ===================================================== */
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-card h2 {
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 430px;
+        }
+
+        /* =====================================================
+           TABLE
+           ===================================================== */
+
+        .table-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        .table-card h2 {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* =====================================================
+           RESPONSIVE
+           ===================================================== */
+
+        @media (max-width: 900px) {
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+
+            .container {
+                width: 95%;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 350px;
+            }
+
+            .notification-wrapper {
+                top: 18px;
+                right: 18px;
+            }
+
+            .notification-dropdown {
+                position: fixed;
+                top: 80px;
+                right: 15px;
+                width: calc(100vw - 30px);
+            }
+        }
+        /* =====================================================
+           AI SUPPORT CHAT
+           ===================================================== */
+
+        .ai-support-button {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            width: 58px;
+            height: 58px;
+            border: none;
+            border-radius: 50%;
+            background: #2563eb;
+            color: white;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+            z-index: 9999;
+        }
+
+        .ai-support-button:hover {
+            transform: scale(1.05);
+        }
+
+        .ai-support-chat {
+            position: fixed;
+            right: 24px;
+            bottom: 92px;
+            width: 360px;
+            height: 500px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 9998;
+        }
+
+        .ai-support-chat.hidden {
+            display: none;
+        }
+
+        .ai-support-header {
+            background: #2563eb;
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-support-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ai-support-title span {
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .ai-support-close {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 26px;
+            cursor: pointer;
+        }
+
+        .ai-support-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .ai-message {
+            max-width: 85%;
+            padding: 10px 13px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            line-height: 1.45;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .ai-message.bot {
+            background: #e2e8f0;
+            color: #1e293b;
+            margin-right: auto;
+        }
+
+        .ai-message.user {
+            background: #2563eb;
+            color: white;
+            margin-left: auto;
+        }
+
+        .ai-support-input-area {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            border-top: 1px solid #e2e8f0;
+            background: white;
+        }
+
+        .ai-support-input {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .ai-support-input:focus {
+            border-color: #2563eb;
+        }
+
+        .ai-support-send {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        .ai-support-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .ai-support-typing {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        @media (max-width: 600px) {
+
+            .ai-support-chat {
+                right: 10px;
+                left: 10px;
+                bottom: 82px;
+                width: auto;
+                height: 70vh;
+            }
+
+            .ai-support-button {
+                right: 16px;
+                bottom: 16px;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <div class="header">
+
+        <h1>ðŸ“Š User Dashboard</h1>
+
+        <p>
+            Blog Management API - Personal Activity & Analytics
+        </p>
+
+
+        <!-- =================================================
+             NOTIFICATION CENTER
+             ================================================= -->
+
+        <div
+            id="notificationWrapper"
+            class="notification-wrapper hidden"
+        >
+
+            <button
+                id="notificationBell"
+                class="notification-bell"
+                onclick="toggleNotifications()"
+                title="Notifications"
+            >
+                ðŸ””
+
+                <span
+                    id="notificationBadge"
+                    class="notification-badge hidden"
+                >
+                    0
+                </span>
+
+            </button>
+
+
+            <!-- Notification Dropdown -->
+
+            <div
+                id="notificationDropdown"
+                class="notification-dropdown hidden"
+            >
+
+                <div class="notification-header">
+
+                    <h3>Notifications</h3>
+
+                    <button
+                        class="mark-all-button"
+                        onclick="markAllNotificationsAsRead()"
+                    >
+                        Mark all as read
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="notificationList"
+                    class="notification-list"
+                >
+
+                    <div class="no-notifications">
+                        No notifications
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         AUTHENTICATION
+         ===================================================== -->
+
+    <div class="auth-box">
+
+        <h2>ðŸ” Authentication</h2>
+
+        <p style="margin-bottom: 12px; color: #666;">
+            Enter your JWT access token to load your dashboard.
+        </p>
+
+        <input
+            type="password"
+            id="tokenInput"
+            class="token-input"
+            placeholder="Paste your JWT access token here"
+        >
+
+        <button
+            class="button"
+            onclick="loadDashboard()"
+        >
+            Load Dashboard
+        </button>
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+    </div>
+
+
+    <!-- =====================================================
+         DASHBOARD CONTENT
+         ===================================================== -->
+
+    <div id="dashboardContent" class="hidden">
+
+
+        <!-- =================================================
+             USER INFORMATION
+             ================================================= -->
+
+        <div class="card" style="margin-bottom: 20px;">
+
+            <h3>Logged-in User</h3>
+
+            <div
+                id="userInfo"
+                style="font-size: 18px; font-weight: bold;"
+            >
+                -
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             SUMMARY CARDS
+             ================================================= -->
+
+        <div class="summary-grid">
+
+
+            <!-- Total Posts -->
+
+            <div class="card">
+
+                <h3>Total Posts</h3>
+
+                <div
+                    id="totalPosts"
+                    class="value"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- Total Comments -->
+
+            <div class="card">
+
+                <h3>Total Comments Made</h3>
+
+                <div
+                    id="totalComments"
+                    class="value"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- Total Likes -->
+
+            <div class="card">
+
+                <h3>Total Likes Received</h3>
+
+                <div
+                    id="totalLikes"
+                    class="value"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- Total Views -->
+
+            <div class="card">
+
+                <h3>Total Post Views</h3>
+
+                <div
+                    id="totalViews"
+                    class="value"
+                >
+                    0
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             CHART
+             ================================================= -->
+
+        <div class="chart-card">
+
+            <h2>ðŸ“ˆ Likes & Comments Per Post</h2>
+
+            <div class="chart-container">
+
+                <canvas id="activityChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             POST ANALYTICS TABLE
+             ================================================= -->
+
+        <div class="table-card">
+
+            <h2>ðŸ“‹ Post Analytics</h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Post ID</th>
+
+                        <th>Title</th>
+
+                        <th>Likes</th>
+
+                        <th>Comments</th>
+
+                        <th>Created At</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="postsTableBody">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+    // =====================================================
+    // GLOBAL VARIABLES
+    // =====================================================
+
+    let activityChart = null;
+
+    let notificationRefreshInterval = null;
+
+
+    // =====================================================
+    // LOAD USER DASHBOARD
+    // =====================================================
+
+    async function loadDashboard() {
+
+        const token =
+            document.getElementById("tokenInput").value.trim();
+
+        const message =
+            document.getElementById("message");
+
+        const dashboardContent =
+            document.getElementById("dashboardContent");
+
+        // -------------------------------------------------
+        // Validate token
+        // -------------------------------------------------
+
+        if (!token) {
+
+            message.textContent =
+                "Please enter your JWT access token.";
+
+            message.className =
+                "message error";
+
+            return;
+        }
+
+
+        // -------------------------------------------------
+        // Loading message
+        // -------------------------------------------------
+
+        message.textContent =
+            "Loading dashboard...";
+
+        message.className =
+            "message";
+
+
+        try {
+
+            // =================================================
+            // CALL FASTAPI DASHBOARD API
+            // =================================================
+
+            const response = await fetch(
+                "/user/dashboard",
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            // =================================================
+            // HANDLE API ERROR
+            // =================================================
+
+            if (!response.ok) {
+
+                let errorMessage =
+                    "Unable to load dashboard.";
+
+                try {
+
+                    const errorData =
+                        await response.json();
+
+                    if (errorData.detail) {
+                        errorMessage =
+                            errorData.detail;
+                    }
+
+                } catch (error) {
+
+                    // Keep default error message
+
+                }
+
+                throw new Error(errorMessage);
+            }
+
+
+            // =================================================
+            // GET JSON DATA
+            // =================================================
+
+            const data =
+                await response.json();
+
+
+            // =================================================
+            // SHOW SUCCESS
+            // =================================================
+
+            message.textContent =
+                "Dashboard loaded successfully.";
+
+            message.className =
+                "message success";
+
+
+            // =================================================
+            // SHOW DASHBOARD
+            // =================================================
+
+            dashboardContent.classList.remove("hidden");
+
+
+            // =================================================
+            // SHOW NOTIFICATION CENTER
+            // =================================================
+
+            document
+                .getElementById("notificationWrapper")
+                .classList.remove("hidden");
+
+
+            // =================================================
+            // USER INFORMATION
+            // =================================================
+
+            document.getElementById("userInfo").textContent =
+                data.user.username +
+                " (" +
+                data.user.email +
+                ")";
+
+
+            // =================================================
+            // SUMMARY
+            // =================================================
+
+            document.getElementById("totalPosts").textContent =
+                data.summary.total_posts;
+
+            document.getElementById("totalComments").textContent =
+                data.summary.total_comments;
+
+            document.getElementById("totalLikes").textContent =
+                data.summary.total_likes_received;
+
+            document.getElementById("totalViews").textContent =
+                data.summary.total_post_views;
+
+
+            // =================================================
+            // CREATE CHART
+            // =================================================
+
+            createActivityChart(data.posts);
+
+
+            // =================================================
+            // CREATE TABLE
+            // =================================================
+
+            createPostsTable(data.posts);
+
+
+            // =================================================
+            // LOAD NOTIFICATIONS
+            // =================================================
+
+            loadNotifications();
+
+
+            // =================================================
+            // REAL-TIME NOTIFICATION REFRESH
+            // =================================================
+
+            if (notificationRefreshInterval) {
+
+                clearInterval(notificationRefreshInterval);
+
+            }
+
+            notificationRefreshInterval =
+                setInterval(
+                    loadNotifications,
+                    10000
+                );
+
+        }
+
+
+        catch (error) {
+
+            dashboardContent.classList.add("hidden");
+
+            document
+                .getElementById("notificationWrapper")
+                .classList.add("hidden");
+
+            message.textContent =
+                error.message;
+
+            message.className =
+                "message error";
+
+        }
+
+    }
+
+
+    // =====================================================
+    // NOTIFICATION CENTER
+    // =====================================================
+
+    function toggleNotifications() {
+
+        const dropdown =
+            document.getElementById(
+                "notificationDropdown"
+            );
+
+        dropdown.classList.toggle("hidden");
+
+        if (!dropdown.classList.contains("hidden")) {
+
+            loadNotifications();
+
+        }
+
+    }
+
+
+    // =====================================================
+    // LOAD NOTIFICATIONS
+    // =====================================================
+
+    async function loadNotifications() {
+
+        const token =
+            document.getElementById("tokenInput").value.trim();
+
+        if (!token) {
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                "/notifications/",
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            if (!response.ok) {
+
+                return;
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            updateNotificationBadge(
+                data.unread_count
+            );
+
+            renderNotifications(
+                data.notifications
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Notification loading failed:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // UPDATE UNREAD BADGE
+    // =====================================================
+
+    function updateNotificationBadge(unreadCount) {
+
+        const badge =
+            document.getElementById(
+                "notificationBadge"
+            );
+
+
+        if (unreadCount > 0) {
+
+            badge.textContent =
+                unreadCount > 99
+                    ? "99+"
+                    : unreadCount;
+
+            badge.classList.remove(
+                "hidden"
+            );
+
+        } else {
+
+            badge.classList.add(
+                "hidden"
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // RENDER NOTIFICATIONS
+    // =====================================================
+
+    function renderNotifications(notifications) {
+
+        const list =
+            document.getElementById(
+                "notificationList"
+            );
+
+
+        list.innerHTML = "";
+
+
+        if (!notifications || notifications.length === 0) {
+
+            list.innerHTML = `
+                <div class="no-notifications">
+                    No notifications
+                </div>
+            `;
+
+            return;
+
+        }
+
+
+        notifications.forEach(notification => {
+
+            const item =
+                document.createElement("div");
+
+
+            item.className =
+                "notification-item";
+
+
+            if (!notification.is_read) {
+
+                item.classList.add(
+                    "unread"
+                );
+
+            }
+
+
+            const createdAt =
+                new Date(
+                    notification.created_at
+                ).toLocaleString();
+
+
+            const actionText =
+                notification.is_read
+                    ? "Mark as unread"
+                    : "Mark as read";
+
+
+            const actionFunction =
+                notification.is_read
+                    ? `markNotificationAsUnread(${notification.id})`
+                    : `markNotificationAsRead(${notification.id})`;
+
+
+            item.innerHTML = `
+
+                <div class="notification-message">
+                    ${escapeHtml(notification.message)}
+                </div>
+
+                <div class="notification-time">
+                    <span class="notification-type">
+                        ${escapeHtml(notification.notification_type)}
+                    </span>
+
+                    ${escapeHtml(createdAt)}
+                </div>
+
+                <button
+                    class="notification-action"
+                    onclick="${actionFunction}"
+                >
+                    ${actionText}
+                </button>
+
+            `;
+
+
+            list.appendChild(item);
+
+        });
+
+    }
+
+
+    // =====================================================
+    // MARK SINGLE NOTIFICATION AS READ
+    // =====================================================
+
+    async function markNotificationAsRead(
+        notificationId
+    ) {
+
+        const token =
+            document.getElementById(
+                "tokenInput"
+            ).value.trim();
+
+
+        if (!token) {
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                `/notifications/${notificationId}/read`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            if (response.ok) {
+
+                await loadNotifications();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Failed to mark notification as read:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // MARK SINGLE NOTIFICATION AS UNREAD
+    // =====================================================
+
+    async function markNotificationAsUnread(
+        notificationId
+    ) {
+
+        const token =
+            document.getElementById(
+                "tokenInput"
+            ).value.trim();
+
+
+        if (!token) {
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                `/notifications/${notificationId}/unread`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            if (response.ok) {
+
+                await loadNotifications();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Failed to mark notification as unread:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // MARK ALL NOTIFICATIONS AS READ
+    // =====================================================
+
+    async function markAllNotificationsAsRead() {
+
+        const token =
+            document.getElementById(
+                "tokenInput"
+            ).value.trim();
+
+
+        if (!token) {
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                "/notifications/read-all",
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+
+            if (response.ok) {
+
+                await loadNotifications();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Failed to mark all notifications as read:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // CREATE CHART.JS BAR CHART
+    // =====================================================
+
+    function createActivityChart(posts) {
+
+        const labels =
+            posts.map(post => post.title);
+
+        const likes =
+            posts.map(post => post.likes);
+
+        const comments =
+            posts.map(post => post.comments);
+
+
+        const ctx =
+            document
+                .getElementById("activityChart")
+                .getContext("2d");
+
+
+        // -------------------------------------------------
+        // Destroy previous chart
+        // -------------------------------------------------
+
+        if (activityChart) {
+
+            activityChart.destroy();
+
+        }
+
+
+        // -------------------------------------------------
+        // Create new chart
+        // -------------------------------------------------
+
+        activityChart = new Chart(
+            ctx,
+            {
+
+                type: "bar",
+
+                data: {
+
+                    labels: labels,
+
+                    datasets: [
+
+                        {
+                            label: "Likes",
+
+                            data: likes
+                        },
+
+                        {
+                            label: "Comments",
+
+                            data: comments
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+
+                    plugins: {
+
+                        legend: {
+                            position: "top"
+                        },
+
+                        tooltip: {
+                            enabled: true
+                        }
+
+                    },
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+                                precision: 0
+                            },
+
+                            title: {
+                                display: true,
+                                text: "Count"
+                            }
+
+                        },
+
+                        x: {
+
+                            title: {
+                                display: true,
+                                text: "Posts"
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // =====================================================
+    // CREATE POSTS TABLE
+    // =====================================================
+
+    function createPostsTable(posts) {
+
+        const tableBody =
+            document.getElementById(
+                "postsTableBody"
+            );
+
+
+        tableBody.innerHTML = "";
+
+
+        posts.forEach(post => {
+
+            const row =
+                document.createElement("tr");
+
+
+            const createdAt =
+                new Date(post.created_at)
+                    .toLocaleString();
+
+
+            row.innerHTML = `
+
+                <td>${post.post_id}</td>
+
+                <td>${escapeHtml(post.title)}</td>
+
+                <td>${post.likes}</td>
+
+                <td>${post.comments}</td>
+
+                <td>${createdAt}</td>
+
+            `;
+
+
+            tableBody.appendChild(row);
+
+        });
+
+    }
+
+
+    // =====================================================
+    // BASIC HTML ESCAPING
+    // =====================================================
+
+    function escapeHtml(value) {
+
+        return String(value)
+
+            .replace(/&/g, "&amp;")
+
+            .replace(/</g, "&lt;")
+
+            .replace(/>/g, "&gt;")
+
+            .replace(/"/g, "&quot;")
+
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    // =====================================================
+    // CLOSE NOTIFICATION DROPDOWN
+    // WHEN CLICKING OUTSIDE
+    // =====================================================
+
+    document.addEventListener(
+        "click",
+        function(event) {
+
+            const wrapper =
+                document.getElementById(
+                    "notificationWrapper"
+                );
+
+            const dropdown =
+                document.getElementById(
+                    "notificationDropdown"
+                );
+
+
+            if (
+                !wrapper.contains(event.target)
+                &&
+                !dropdown.classList.contains("hidden")
+            ) {
+
+                dropdown.classList.add(
+                    "hidden"
+                );
+
+            }
+
+        }
+    );
+// =====================================================
+// AI SUPPORT CHAT
+// =====================================================
+
+function toggleAISupport() {
+    const chat = document.getElementById("aiSupportChat");
+
+    if (!chat) {
+        return;
+    }
+
+    chat.classList.toggle("hidden");
+
+    if (!chat.classList.contains("hidden")) {
+        const input = document.getElementById("aiSupportInput");
+
+        if (input) {
+            input.focus();
+        }
+
+        scrollAISupportMessages();
+    }
+}
+
+
+function addAISupportMessage(message, type) {
+    const messages = document.getElementById("aiSupportMessages");
+
+    if (!messages) {
+        return;
+    }
+
+    const messageElement = document.createElement("div");
+
+    messageElement.className = "ai-message " + type;
+    messageElement.textContent = message;
+
+    messages.appendChild(messageElement);
+
+    scrollAISupportMessages();
+}
+
+
+function scrollAISupportMessages() {
+    const messages = document.getElementById("aiSupportMessages");
+
+    if (messages) {
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+
+async function sendAISupportMessage() {
+
+    const input = document.getElementById("aiSupportInput");
+    const sendButton = document.getElementById("aiSupportSend");
+    const tokenInput = document.getElementById("tokenInput");
+
+    if (!input || !sendButton || !tokenInput) {
+        return;
+    }
+
+    const token = tokenInput.value.trim();
+    const message = input.value.trim();
+
+    if (!token) {
+        addAISupportMessage(
+            "Please enter your JWT access token and load the dashboard first.",
+            "bot"
+        );
+        return;
+    }
+
+    if (!message) {
+        input.focus();
+        return;
+    }
+
+
+    // Show user's message
+    addAISupportMessage(
+        message,
+        "user"
+    );
+
+
+    // Clear input
+    input.value = "";
+
+
+    // Disable send button
+    sendButton.disabled = true;
+    sendButton.textContent = "...";
+
+
+    // Show typing message
+    const typing = document.createElement("div");
+
+    typing.id = "aiSupportTyping";
+    typing.className = "ai-support-typing";
+    typing.textContent = "AI Support is typing...";
+
+
+    const messagesContainer =
+        document.getElementById("aiSupportMessages");
+
+    if (messagesContainer) {
+        messagesContainer.appendChild(typing);
+        scrollAISupportMessages();
+    }
+
+
+    try {
+
+        const response = await fetch(
+            "/api/ai-support/",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+
+                body: JSON.stringify({
+                    message: message
+                })
+            }
+        );
+
+
+        if (!response.ok) {
+
+            let errorMessage =
+                "Unable to get a response from AI Support.";
+
+
+            try {
+
+                const errorData =
+                    await response.json();
+
+
+                if (errorData.detail) {
+
+                    errorMessage =
+                        typeof errorData.detail === "string"
+                            ? errorData.detail
+                            : JSON.stringify(errorData.detail);
+                }
+
+            } catch (error) {
+
+                // Keep default error message.
+
+            }
+
+
+            throw new Error(errorMessage);
+        }
+
+
+        const data =
+            await response.json();
+
+
+        // Show AI response
+        addAISupportMessage(
+            data.response,
+            "bot"
+        );
+
+
+    } catch (error) {
+
+        addAISupportMessage(
+            "Sorry, something went wrong. " + error.message,
+            "bot"
+        );
+
+
+    } finally {
+
+        const typingElement =
+            document.getElementById("aiSupportTyping");
+
+
+        if (typingElement) {
+            typingElement.remove();
+        }
+
+
+        sendButton.disabled = false;
+        sendButton.textContent = "Send";
+
+        input.focus();
+    }
+}
+
+
+// =====================================================
+// AI SUPPORT ENTER KEY
+// =====================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const input =
+            document.getElementById("aiSupportInput");
+
+
+        if (!input) {
+            return;
+        }
+
+
+        input.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+
+                    event.preventDefault();
+
+                    sendAISupportMessage();
+                }
+            }
+        );
+    }
+);
+    </script>
+
+
+
+<!-- =====================================================
+     AI SUPPORT CHAT WIDGET
+     ===================================================== -->
+
+<button
+    id="aiSupportButton"
+    class="ai-support-button"
+    onclick="toggleAISupport()"
+    title="AI Support"
+>
+    🤖
+</button>
+
+
+<div
+    id="aiSupportChat"
+    class="ai-support-chat hidden"
+>
+
+    <div class="ai-support-header">
+
+        <div class="ai-support-title">
+
+            <strong>🤖 AI Support</strong>
+
+            <span>
+                How can I help you?
+            </span>
+
+        </div>
+
+
+        <button
+            class="ai-support-close"
+            onclick="toggleAISupport()"
+            title="Close"
+        >
+            ×
+        </button>
+
+    </div>
+
+
+    <div
+        id="aiSupportMessages"
+        class="ai-support-messages"
+    >
+
+        <div class="ai-message bot">
+
+            Hello! 👋 I'm your Blog Management support assistant.
+
+            I can help you with posts, comments, likes,
+            subscriptions, billing, notifications,
+            and dashboard analytics.
+
+        </div>
+
+    </div>
+
+
+    <div class="ai-support-input-area">
+
+        <input
+            type="text"
+            id="aiSupportInput"
+            class="ai-support-input"
+            placeholder="Ask me anything..."
+            maxlength="1000"
+            autocomplete="off"
+        >
+
+
+        <button
+            id="aiSupportSend"
+            class="ai-support-send"
+            onclick="sendAISupportMessage()"
+        >
+            Send
+        </button>
+
+    </div>
+
+</div>
+
+</body>
+</html>

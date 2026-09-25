@@ -26,7 +26,11 @@ class BillingHistory(models.Model):
     plan_id = models.IntegerField()
     amount = models.IntegerField()
     transaction_id = models.CharField(max_length=100)
-    invoice_path = models.CharField(max_length=500, null=True, blank=True)
+    invoice_path = models.CharField(
+        max_length=500,
+        null=True,
+        blank=True
+    )
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     created_at = models.DateTimeField()
@@ -39,3 +43,27 @@ class BillingHistory(models.Model):
 
     def __str__(self):
         return self.transaction_id
+
+
+class Notification(models.Model):
+    id = models.IntegerField(primary_key=True)
+
+    user_id = models.IntegerField()
+
+    message = models.CharField(max_length=500)
+
+    notification_type = models.CharField(max_length=50)
+
+    is_read = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = "notifications"
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.message
