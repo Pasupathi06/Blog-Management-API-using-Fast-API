@@ -14,17 +14,50 @@ from datetime import datetime
 from app.database import Base
 
 
+# =========================================================
+# SUBSCRIPTION PLAN
+# =========================================================
+
 class SubscriptionPlan(Base):
     __tablename__ = "subscription_plans"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), unique=True, nullable=False)
-    price = Column(Integer, nullable=False, default=0)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
-    post_limit = Column(Integer, nullable=True)
-    image_limit = Column(Integer, nullable=True)
-    like_limit = Column(Integer, nullable=True)
-    comment_limit = Column(Integer, nullable=True)
+    name = Column(
+        String(50),
+        unique=True,
+        nullable=False
+    )
+
+    price = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+    post_limit = Column(
+        Integer,
+        nullable=True
+    )
+
+    image_limit = Column(
+        Integer,
+        nullable=True
+    )
+
+    like_limit = Column(
+        Integer,
+        nullable=True
+    )
+
+    comment_limit = Column(
+        Integer,
+        nullable=True
+    )
 
     users = relationship(
         "User",
@@ -37,15 +70,42 @@ class SubscriptionPlan(Base):
     )
 
 
+# =========================================================
+# USER
+# =========================================================
+
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, nullable=False, index=True)
-    email = Column(String(100), unique=True, nullable=False, index=True)
-    password = Column(String(255), nullable=False)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
-    # Active subscription
+    username = Column(
+        String(50),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    email = Column(
+        String(100),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    password = Column(
+        String(255),
+        nullable=False
+    )
+
+    # =====================================================
+    # ACTIVE SUBSCRIPTION
+    # =====================================================
+
     subscription_plan_id = Column(
         Integer,
         ForeignKey("subscription_plans.id"),
@@ -61,6 +121,10 @@ class User(Base):
         DateTime,
         nullable=True
     )
+
+    # =====================================================
+    # RELATIONSHIPS
+    # =====================================================
 
     posts = relationship(
         "Post",
@@ -91,7 +155,6 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
-    # Notifications
     notifications = relationship(
         "Notification",
         back_populates="user",
@@ -99,10 +162,18 @@ class User(Base):
     )
 
 
+# =========================================================
+# BILLING HISTORY
+# =========================================================
+
 class BillingHistory(Base):
     __tablename__ = "billing_history"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     user_id = Column(
         Integer,
@@ -158,15 +229,41 @@ class BillingHistory(Base):
     )
 
 
+# =========================================================
+# POST
+# =========================================================
+
 class Post(Base):
     __tablename__ = "posts"
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200), nullable=False)
-    content = Column(Text, nullable=False)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
-    # Existing image field - keep this for backward compatibility
-    image = Column(String(500), nullable=True)
+    title = Column(
+        String(200),
+        nullable=False
+    )
+
+    content = Column(
+        Text,
+        nullable=False
+    )
+
+    # =====================================================
+    # EXISTING IMAGE FIELD
+    # =====================================================
+
+    image = Column(
+        String(500),
+        nullable=True
+    )
+
+    # =====================================================
+    # AUTHOR
+    # =====================================================
 
     author_id = Column(
         Integer,
@@ -174,10 +271,57 @@ class Post(Base):
         nullable=False
     )
 
+    # =====================================================
+    # CREATED TIME
+    # =====================================================
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow
     )
+
+    # =====================================================
+    # SCHEDULED BLOG PUBLISHING
+    # =====================================================
+
+    # Possible values:
+    #
+    # draft
+    # scheduled
+    # published
+    #
+    status = Column(
+        String(20),
+        nullable=False,
+        default="published"
+    )
+
+    # Future date/time selected by author
+    #
+    # Example:
+    # 2026-09-30 10:00:00
+    #
+    scheduled_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    # Actual date/time when post was published
+    #
+    # For immediate publishing:
+    # published_at = current datetime
+    #
+    # For scheduled publishing:
+    # published_at = scheduled publish time
+    #
+    published_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    # =====================================================
+    # RELATIONSHIPS
+    # =====================================================
 
     author = relationship(
         "User",
@@ -203,6 +347,10 @@ class Post(Base):
         cascade="all, delete-orphan"
     )
 
+
+# =========================================================
+# POST IMAGE
+# =========================================================
 
 class PostImage(Base):
     __tablename__ = "post_images"
@@ -230,10 +378,18 @@ class PostImage(Base):
     )
 
 
+# =========================================================
+# COMMENT
+# =========================================================
+
 class Comment(Base):
     __tablename__ = "comments"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     post_id = Column(
         Integer,
@@ -268,10 +424,18 @@ class Comment(Base):
     )
 
 
+# =========================================================
+# LIKE
+# =========================================================
+
 class Like(Base):
     __tablename__ = "likes"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     post_id = Column(
         Integer,

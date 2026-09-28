@@ -1,12 +1,16 @@
-﻿from fastapi import FastAPI
+﻿import asyncio
+import os
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
 
-import os
-
 from app.database import Base, engine
 from app import models
+
+from app.scheduler import publish_scheduled_posts
 
 from app.routers.auth import router as auth_router
 from app.routers.posts import router as posts_router
@@ -27,13 +31,47 @@ Base.metadata.create_all(bind=engine)
 
 
 # =========================================================
+# SCHEDULED BLOG PUBLISHING
+# =========================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    # Start scheduled publishing background task
+    scheduler_task = asyncio.create_task(
+        publish_scheduled_posts()
+    )
+
+    print(
+        "Scheduled blog publishing scheduler started."
+    )
+
+    try:
+        yield
+
+    finally:
+        # Stop scheduler when server shuts down
+        scheduler_task.cancel()
+
+        try:
+            await scheduler_task
+        except asyncio.CancelledError:
+            pass
+
+        print(
+            "Scheduled blog publishing scheduler stopped."
+        )
+
+
+# =========================================================
 # CREATE FASTAPI APPLICATION
 # =========================================================
 
 app = FastAPI(
     title="Blog Management API",
     description="A mini blogging system built with FastAPI",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 
@@ -81,31 +119,22 @@ app.mount(
 # INCLUDE ROUTERS
 # =========================================================
 
-# Authentication
 app.include_router(auth_router)
 
-# Posts
 app.include_router(posts_router)
 
-# Comments
 app.include_router(comments_router)
 
-# Likes
 app.include_router(likes_router)
 
-# Subscriptions
 app.include_router(subscriptions_router)
 
-# User Dashboard
 app.include_router(dashboard_router)
 
-# Notifications
 app.include_router(notifications_router)
 
-# AI Support
 app.include_router(ai_support_router)
 
-# Auth0 Google / Facebook
 app.include_router(auth0_router)
 
 
@@ -169,10 +198,7 @@ def custom_openapi():
             if field_name != "images":
                 continue
 
-            # -------------------------------------------------
             # Case 1: images is directly an array
-            # -------------------------------------------------
-
             if field_schema.get("type") == "array":
 
                 items = field_schema.get(
@@ -188,10 +214,7 @@ def custom_openapi():
                         "application/octet-stream"
                     )
 
-            # -------------------------------------------------
             # Case 2: images is inside anyOf
-            # -------------------------------------------------
-
             if "anyOf" in field_schema:
 
                 for option in field_schema["anyOf"]:
